@@ -1,23 +1,6 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101224">
-<title>AJ Player TV — Conectar pelo celular</title>
-<style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#26244c,#101224 65%);color:#fff;font:16px system-ui,-apple-system,Segoe UI,sans-serif;display:grid;place-items:center;padding:24px}.panel{width:min(100%,430px);background:#1b1e33;border:1px solid #414268;border-radius:22px;padding:28px;box-shadow:0 18px 60px #0006}h1{margin:0;text-align:center;font-size:29px;color:#b9a4ff}p{color:#c5c8dd;line-height:1.5;text-align:center}label{display:block;margin:17px 0 7px;font-weight:600;font-size:14px}input{width:100%;padding:14px;border-radius:11px;border:1px solid #575b7b;background:#101224;color:white;font-size:16px}input:focus{outline:2px solid #9477ff}button{margin-top:24px;width:100%;padding:15px;border:0;border-radius:11px;background:#615c77;color:#eee;font-size:16px;font-weight:700;cursor:not-allowed}.notice{background:#302b42;border:1px solid #76678f;border-radius:10px;padding:12px;font-size:13px;color:#e2d9ff;text-align:left}small{display:block;text-align:center;margin-top:18px;color:#a7abc3}
-</style>
-</head>
-<body><main class="panel">
-<h1>AJ PLAYER TV</h1>
-<p>Configure sua TV pelo celular</p>
-<div class="notice">Página em preparação. O envio para a TV ainda não está habilitado. Não informe credenciais reais durante os testes.</div>
-<form autocomplete="off" onsubmit="return false">
-<label for="url">URL do servidor</label><input id="url" type="url" placeholder="https://servidor.exemplo" autocomplete="off">
-<label for="usuario">Usuário</label><input id="usuario" type="text" placeholder="Seu usuário" autocomplete="off">
-<label for="senha">Senha</label><input id="senha" type="password" placeholder="Sua senha" autocomplete="off">
-<button type="button" disabled>Conectar à TV — em breve</button>
-</form><small>AJ Player TV • Página de demonstração</small>
-</main></body>
-</html>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AJ Player TV • Conectar</title><style>body{margin:0;min-height:100vh;background:linear-gradient(155deg,#28204b,#090c1b);color:#fff;font:16px Arial,sans-serif;display:grid;place-items:center}.card{box-sizing:border-box;width:min(92%,480px);background:#1b1c32;border:1px solid #5c4b87;border-radius:22px;padding:26px;box-shadow:0 12px 50px #0007}h1{text-align:center;color:#c2a2ff}p{color:#c7c2d6;line-height:1.5}label{display:block;margin-top:16px;font-weight:bold}input{box-sizing:border-box;width:100%;padding:15px;background:#101326;color:white;border:1px solid #66577c;border-radius:11px;margin-top:8px;font-size:16px}button{margin-top:24px;width:100%;padding:16px;border:0;border-radius:12px;background:#8053d7;color:white;font-weight:bold;font-size:16px}button:disabled{opacity:.5}#status{min-height:26px;font-size:14px}small{color:#aaa}</style></head><body><main class="card"><h1>AJ PLAYER TV</h1><p>Configure sua TV pelo celular. Escaneie o QR Code mostrado na TV para abrir esta página.</p><p id="status">Verificando conexão com a TV…</p><form id="form"><label>URL do servidor<input id="url" type="url" required placeholder="https://servidor.exemplo"></label><label>Usuário<input id="username" required autocomplete="off"></label><label>Senha<input id="password" type="password" required autocomplete="off"></label><button id="send" disabled>Enviar para TV</button></form><p><small>Conexão temporária. Use apenas servidores e contas que você está autorizado a acessar.</small></p></main><script>
+const API="AIzaSyARpZXFIesevC5ylKP4Gd7v1e2W8gtwNis", DB="https://aj-player-tv-default-rtdb.europe-west1.firebasedatabase.app";const $=id=>document.getElementById(id);const token=new URLSearchParams(location.search).get('s');let auth=null;
+async function request(url,options={}){const r=await fetch(url,options);const x=await r.json();if(!r.ok)throw Error(x.error?.message||'Falha de conexão');return x}
+async function init(){try{if(!token||!/^[a-f0-9]{48}$/.test(token))throw Error('Abra o QR Code exibido na TV para iniciar.');auth=await request('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({returnSecureToken:true})});$('send').disabled=false;$('status').textContent='Pronto! Preencha os dados e envie para sua TV.'}catch(e){$('status').textContent=e.message}}
+$('form').addEventListener('submit',async e=>{e.preventDefault();$('send').disabled=true;try{const url=$('url').value.trim(),username=$('username').value.trim(),password=$('password').value;if(!/^https?:\/\//i.test(url)||!username||!password)throw Error('Informe URL, usuário e senha válidos.');await request(DB+'/sessions/'+token+'/credentials.json?auth='+encodeURIComponent(auth.idToken),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,username,password})});$('status').textContent='Enviado! Aguarde a TV conectar.';$('password').value='';}catch(err){$('status').textContent='Não foi possível enviar: '+err.message;$('send').disabled=false}});init();
+</script></body></html>
