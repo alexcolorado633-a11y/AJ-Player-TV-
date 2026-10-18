@@ -1,6 +1,94 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AJ Player TV • Conectar</title><style>body{margin:0;min-height:100vh;background:linear-gradient(155deg,#28204b,#090c1b);color:#fff;font:16px Arial,sans-serif;display:grid;place-items:center}.card{box-sizing:border-box;width:min(92%,480px);background:#1b1c32;border:1px solid #5c4b87;border-radius:22px;padding:26px;box-shadow:0 12px 50px #0007}h1{text-align:center;color:#c2a2ff}p{color:#c7c2d6;line-height:1.5}label{display:block;margin-top:16px;font-weight:bold}input{box-sizing:border-box;width:100%;padding:15px;background:#101326;color:white;border:1px solid #66577c;border-radius:11px;margin-top:8px;font-size:16px}button{margin-top:24px;width:100%;padding:16px;border:0;border-radius:12px;background:#8053d7;color:white;font-weight:bold;font-size:16px}button:disabled{opacity:.5}#status{min-height:26px;font-size:14px}small{color:#aaa}</style></head><body><main class="card"><h1>AJ PLAYER TV</h1><p>Configure sua TV pelo celular. Escaneie o QR Code mostrado na TV para abrir esta página.</p><p id="status">Verificando conexão com a TV…</p><form id="form"><label>URL do servidor<input id="url" type="url" required placeholder="https://servidor.exemplo"></label><label>Usuário<input id="username" required autocomplete="off"></label><label>Senha<input id="password" type="password" required autocomplete="off"></label><button id="send" disabled>Enviar para TV</button></form><p><small>Conexão temporária. Use apenas servidores e contas que você está autorizado a acessar.</small></p></main><script>
-const API="AIzaSyARpZXFIesevC5ylKP4Gd7v1e2W8gtwNis", DB="https://aj-player-tv-default-rtdb.europe-west1.firebasedatabase.app";const $=id=>document.getElementById(id);const token=new URLSearchParams(location.search).get('s');let auth=null;
-async function request(url,options={}){const r=await fetch(url,options);const x=await r.json();if(!r.ok)throw Error(x.error?.message||'Falha de conexão');return x}
-async function init(){try{if(!token||!/^[a-f0-9]{48}$/.test(token))throw Error('Abra o QR Code exibido na TV para iniciar.');auth=await request('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({returnSecureToken:true})});$('send').disabled=false;$('status').textContent='Pronto! Preencha os dados e envie para sua TV.'}catch(e){$('status').textContent=e.message}}
-$('form').addEventListener('submit',async e=>{e.preventDefault();$('send').disabled=true;try{const url=$('url').value.trim(),username=$('username').value.trim(),password=$('password').value;if(!/^https?:\/\//i.test(url)||!username||!password)throw Error('Informe URL, usuário e senha válidos.');await request(DB+'/sessions/'+token+'/credentials.json?auth='+encodeURIComponent(auth.idToken),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,username,password})});$('status').textContent='Enviado! Aguarde a TV conectar.';$('password').value='';}catch(err){$('status').textContent='Não foi possível enviar: '+err.message;$('send').disabled=false}});init();
-</script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101224">
+<title>AJ Player TV • Conectar pelo celular</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:linear-gradient(155deg,#28204b,#090c1b);color:#fff;font:16px Arial,sans-serif;display:grid;place-items:center;padding:28px 0}
+.card{width:min(92%,480px);background:#1b1c32;border:1px solid #5c4b87;border-radius:22px;padding:26px;box-shadow:0 12px 50px #0007}
+h1{text-align:center;color:#c2a2ff;font-size:31px}p{color:#c7c2d6;line-height:1.5}label{display:block;margin-top:16px;font-weight:bold}
+input{width:100%;padding:15px;background:#101326;color:white;border:1px solid #66577c;border-radius:11px;margin-top:8px;font-size:16px}
+input:focus{outline:2px solid #ab80ff;outline-offset:1px}button{margin-top:24px;width:100%;padding:16px;border:0;border-radius:12px;background:#8053d7;color:#fff;font-weight:bold;font-size:16px}
+button:disabled{opacity:.5}#status{min-height:26px;font-size:15px;white-space:pre-line}#status.error{color:#ffb9bb}#status.success{color:#b6efc6}
+small{color:#aaa}
+</style>
+</head>
+<body>
+<main class="card">
+<h1>AJ PLAYER TV</h1>
+<p>Configure sua TV pelo celular. Escaneie o QR Code exibido no AJ Player TV V16 e mantenha o aplicativo aberto na TV.</p>
+<p id="status" role="status" aria-live="polite">Verificando conexão com o Firebase…</p>
+<form id="form" autocomplete="off">
+<label for="url">URL do servidor</label><input id="url" type="url" required placeholder="https://servidor.exemplo" autocapitalize="none" spellcheck="false">
+<label for="username">Usuário</label><input id="username" required autocapitalize="none" spellcheck="false">
+<label for="password">Senha</label><input id="password" type="password" required autocomplete="off">
+<button id="send" type="submit" disabled>Enviar para TV</button>
+</form>
+<p><small>Envio temporário pelo Firebase. Use apenas contas que você está autorizado a acessar. Teste primeiro com dados fictícios.</small></p>
+</main>
+<script>
+'use strict';
+const API='AIzaSyARpZXFIesevC5ylKP4Gd7v1e2W8gtwNis';
+const DB='https://aj-player-tv-default-rtdb.europe-west1.firebasedatabase.app';
+const $=id=>document.getElementById(id);
+const token=new URLSearchParams(location.search).get('s');
+let auth=null;
+function status(message,kind=''){$('status').textContent=message;$('status').className=kind;}
+function publicError(error){
+  const code=String(error.code||'').toUpperCase();
+  const http=error.http?' (HTTP '+error.http+')':'';
+  if(code.includes('PERMISSION_DENIED')||code.includes('PERMISSION DENIED')||error.http===401||error.http===403){
+    return 'O Firebase recusou o envio'+http+'. Pode ser uma sessão QR inexistente/expirada ou uma regra de acesso. Gere um QR novo na V16, mantenha a TV nesta tela e tente novamente. Se persistir, envie uma foto desta mensagem.';
+  }
+  if(code.includes('INVALID_ID_TOKEN')||code.includes('TOKEN_EXPIRED')){
+    return 'A autenticação desta página expirou. Reabra a página pelo QR Code atual da TV.';
+  }
+  if(error.http){return 'O Firebase respondeu com erro '+code+http+'. Envie uma foto desta mensagem para diagnóstico.';}
+  return 'Não foi possível alcançar o Firebase. Verifique a internet do celular e tente novamente. Detalhe: '+String(error.message||'erro de rede');
+}
+async function request(url,options={}){
+  let response;
+  try{response=await fetch(url,options);}catch(e){throw new Error('Erro de rede no navegador: '+(e.message||'sem resposta'));}
+  const raw=await response.text();let data=null;
+  try{data=raw?JSON.parse(raw):null;}catch(e){throw new Error('Resposta inesperada do Firebase (HTTP '+response.status+').');}
+  if(!response.ok){
+    const message=typeof data?.error==='string'?data.error:(data?.error?.message||'ERRO_DESCONHECIDO');
+    const error=new Error(message);error.code=message;error.http=response.status;throw error;
+  }
+  return data;
+}
+async function init(){
+  try{
+    if(!token||!/^[a-f0-9]{48}$/.test(token)){
+      throw new Error('Abra esta página pelo QR Code exibido na TV. O link sem QR não consegue enviar a lista.');
+    }
+    auth=await request('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+API,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({returnSecureToken:true})
+    });
+    if(!auth.idToken)throw new Error('O Firebase não devolveu a autenticação.');
+    $('send').disabled=false;
+    status('Pronto para enviar. Mantenha a tela do QR Code aberta na TV.','success');
+  }catch(error){status(error.http?publicError(error):error.message,'error');}
+}
+$('form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!auth)return;
+  $('send').disabled=true;
+  status('Enviando para a TV…');
+  try{
+    const url=$('url').value.trim(),username=$('username').value.trim(),password=$('password').value;
+    if(!/^https?:\/\//i.test(url)||!username||!password)throw new Error('Preencha a URL http(s), o usuário e a senha.');
+    await request(DB+'/sessions/'+token+'/credentials.json?auth='+encodeURIComponent(auth.idToken),{
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,username,password})
+    });
+    $('password').value='';
+    status('Dados enviados. Aguarde a TV conectar.','success');
+  }catch(error){status(publicError(error),'error');$('send').disabled=false;}
+});
+init();
+</script>
+</body>
+</html>
